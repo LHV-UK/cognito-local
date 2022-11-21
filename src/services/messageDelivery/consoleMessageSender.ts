@@ -3,6 +3,7 @@ import { Context } from "../context";
 import { Message } from "../messages";
 import { User } from "../userPoolService";
 import { MessageSender } from "./messageSender";
+import * as fs from "fs"
 
 export class ConsoleMessageSender implements MessageSender {
   public sendEmail(
@@ -55,6 +56,13 @@ export class ConsoleMessageSender implements MessageSender {
         padding: 1,
       })
     );
+
+    // So that any codes generated can be picked up by automated processes,
+    // if a message location is given, then write to that location the code.
+    const messageLocation = process.env.MESSAGE_LOCATION
+    if (messageLocation) {
+      fs.writeFileSync(messageLocation, JSON.stringify({code: __code}))
+    }
 
     return Promise.resolve();
   }
