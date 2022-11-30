@@ -71,7 +71,7 @@ export const AdminRespondToAuthChallenge =
         (x): x is MFAOption & { DeliveryMedium: DeliveryMediumType } =>
           x.DeliveryMedium === "SMS"
       );
-      console.log(smsMfaOption);
+
       if (!smsMfaOption) {
         throw new MFAMethodNotFoundException();
       }
