@@ -76,12 +76,7 @@ export const AdminResetUserPassword =
       UserLastModifiedDate: clock.get(),
     };
 
-    await userPool.saveUser(ctx, {
-      ...user,
-      UserStatus: "FORCE_CHANGE_PASSWORD",
-      Password: password,
-      UserLastModifiedDate: clock.get(),
-    });
+    await userPool.saveUser(ctx, newUser);
 
     await sendNewPassword(ctx, req, password, newUser, messages, userPool);
 
