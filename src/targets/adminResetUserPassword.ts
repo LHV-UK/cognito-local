@@ -26,10 +26,10 @@ const generator = shortUUID(
   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"
 );
 
-const sendNewPassword = async (
+const sendCode = async (
   ctx: Context,
   req: AdminResetUserPasswordRequest,
-  temporaryPassword: string,
+  code: string,
   user: User,
   messages: Messages,
   userPool: UserPoolService
@@ -48,7 +48,7 @@ const sendNewPassword = async (
     null,
     userPool.options.Id,
     user,
-    temporaryPassword,
+    code,
     req.ClientMetadata,
     deliveryDetails
   );
@@ -67,18 +67,18 @@ export const AdminResetUserPassword =
       throw new UserNotFoundError();
     }
 
-    const password = generator.uuid().slice(0, 16);
+    const code = generator.uuid().slice(0, 6);
 
     const newUser = {
       ...user,
-      UserStatus: "FORCE_CHANGE_PASSWORD",
-      Password: password,
+      UserStatus: "RESET_REQUIRED",
+      ConfirmationCode: code,
       UserLastModifiedDate: clock.get(),
     };
 
     await userPool.saveUser(ctx, newUser);
 
-    await sendNewPassword(ctx, req, password, newUser, messages, userPool);
+    await sendCode(ctx, req, code, newUser, messages, userPool);
 
     return {};
   };
