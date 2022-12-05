@@ -5,11 +5,7 @@ import {
 } from "aws-sdk/clients/cognitoidentityserviceprovider";
 import shortUUID from "short-uuid";
 import * as uuid from "uuid";
-import {
-  InvalidParameterError,
-  UnsupportedError,
-  UsernameExistsError,
-} from "../errors";
+import { InvalidParameterError, UsernameExistsError } from "../errors";
 import { Messages, Services, UserPoolService } from "../services";
 import { Context } from "../services/context";
 import { DeliveryDetails } from "../services/messageDelivery/messageDelivery";
@@ -105,10 +101,34 @@ export const AdminCreateUser =
   async (ctx, req) => {
     const userPool = await cognito.getUserPool(ctx, req.UserPoolId);
     const existingUser = await userPool.getUserByUsername(ctx, req.Username);
-    const supressWelcomeMessage = req.MessageAction === "SUPPRESS";
+    const suppressWelcomeMessage = req.MessageAction === "SUPPRESS";
+
+    const now = clock.get();
+    const temporaryPassword =
+      req.TemporaryPassword ?? generator.new().slice(0, 6);
 
     if (existingUser && req.MessageAction === "RESEND") {
-      throw new UnsupportedError("AdminCreateUser with MessageAction=RESEND");
+      const newUser = {
+        ...existingUser,
+        UserStatus: "FORCE_CHANGE_PASSWORD",
+        Password: temporaryPassword,
+        UserLastModifiedDate: now,
+      };
+
+      await userPool.saveUser(ctx, newUser);
+
+      await deliverWelcomeMessage(
+        ctx,
+        req,
+        temporaryPassword,
+        newUser,
+        messages,
+        userPool
+      );
+
+      return {
+        User: userToResponseObject(newUser),
+      };
     } else if (existingUser) {
       throw new UsernameExistsError();
     }
@@ -116,11 +136,6 @@ export const AdminCreateUser =
     const attributes = attributesInclude("sub", req.UserAttributes)
       ? req.UserAttributes ?? []
       : [{ Name: "sub", Value: uuid.v4() }, ...(req.UserAttributes ?? [])];
-
-    const now = clock.get();
-
-    const temporaryPassword =
-      req.TemporaryPassword ?? generator.new().slice(0, 6);
 
     const isEmailUsername =
       config.UserPoolDefaults.UsernameAttributes?.includes("email");
@@ -149,7 +164,7 @@ export const AdminCreateUser =
     // TODO: support ForceAliasCreation
     // TODO: support PreSignIn lambda and ValidationData
 
-    if (!supressWelcomeMessage) {
+    if (!suppressWelcomeMessage) {
       await deliverWelcomeMessage(
         ctx,
         req,

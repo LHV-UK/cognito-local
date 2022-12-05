@@ -9,8 +9,8 @@ import {
   InvalidPasswordError,
   MFAMethodNotFoundException,
   NotAuthorizedError,
+  PasswordResetRequiredError,
   UnsupportedError,
-  UserNotFoundError,
 } from "../errors";
 import { Services, UserPoolService } from "../services";
 import { attributeValue, MFAOption, User } from "../services/userPoolService";
@@ -51,6 +51,10 @@ export const verifyMfaChallenge = async (
   );
   if (!deliveryDestination) {
     throw new MFAMethodNotFoundException();
+  }
+
+  if (user.UserStatus === "RESET_REQUIRED") {
+    throw new PasswordResetRequiredError();
   }
 
   const code = services.otp();
