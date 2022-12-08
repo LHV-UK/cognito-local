@@ -247,6 +247,88 @@ describe("RespondToAuthChallenge target", () => {
     });
   });
 
+  describe("ChallengeName=SMS_MFA with phone_number not verified", () => {
+    const user = TDB.user({
+      MFACode: "123456",
+      MFAOptions: [{ DeliveryMedium: "SMS", AttributeName: "phone_number" }],
+      Attributes: [
+        { Name: "phone_number", Value: "+447900000001" },
+        { Name: "phone_number_verified", Value: "false" },
+      ],
+    });
+
+    beforeEach(() => {
+      mockUserPoolService.getUserByUsername.mockResolvedValue(user);
+    });
+
+    describe("when code matches", () => {
+      it("updates the user, sets the phone_number to verified, and removes the MFACode", async () => {
+        const newDate = clock.advanceBy(1200);
+
+        await adminRespondToAuthChallenge(TestContext, {
+          UserPoolId: "poolId",
+          ClientId: userPoolClient.ClientId,
+          ChallengeName: "SMS_MFA",
+          ChallengeResponses: {
+            USERNAME: user.Username,
+            SMS_MFA_CODE: "123456",
+          },
+          Session: "Session",
+        });
+
+        expect(mockUserPoolService.saveUser).toHaveBeenCalledWith(TestContext, {
+          ...user,
+          MFACode: undefined,
+          UserLastModifiedDate: newDate,
+          Attributes: [
+            { Name: "phone_number", Value: "+447900000001" },
+            { Name: "phone_number_verified", Value: "true" },
+          ],
+        });
+      });
+
+      it("generates tokens", async () => {
+        mockTokenGenerator.generate.mockResolvedValue({
+          AccessToken: "access",
+          IdToken: "id",
+          RefreshToken: "refresh",
+        });
+        mockUserPoolService.listUserGroupMembership.mockResolvedValue([]);
+
+        const output = await adminRespondToAuthChallenge(TestContext, {
+          UserPoolId: "poolId",
+          ClientId: userPoolClient.ClientId,
+          ChallengeName: "SMS_MFA",
+          ChallengeResponses: {
+            USERNAME: user.Username,
+            SMS_MFA_CODE: "123456",
+          },
+          Session: "Session",
+          ClientMetadata: {
+            client: "metadata",
+          },
+        });
+
+        expect(output).toBeDefined();
+
+        expect(output.AuthenticationResult?.AccessToken).toEqual("access");
+        expect(output.AuthenticationResult?.IdToken).toEqual("id");
+        expect(output.AuthenticationResult?.RefreshToken).toEqual("refresh");
+
+        expect(mockTokenGenerator.generate).toHaveBeenCalledWith(
+          TestContext,
+          user,
+          [],
+          userPoolClient,
+          {
+            client: "metadata",
+          },
+          "Authentication"
+        );
+      });
+    });
+  });
+
   describe("ChallengeName=NEW_PASSWORD_REQUIRED", () => {
     const user = TDB.user();
 
