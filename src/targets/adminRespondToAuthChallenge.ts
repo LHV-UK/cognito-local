@@ -88,6 +88,11 @@ export const AdminRespondToAuthChallenge =
         throw new CodeMismatchError();
       }
 
+      // Mark the phone number as verified if it is not, as it has gone through the SMS MFA flow
+      user.Attributes = user.Attributes.filter(
+        (att) => att.Name !== "phone_number_verified"
+      ).concat([{ Name: "phone_number_verified", Value: "true" }]);
+
       await userPool.saveUser(ctx, {
         ...user,
         MFACode: undefined,
