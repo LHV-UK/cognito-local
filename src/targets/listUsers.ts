@@ -32,7 +32,6 @@ export const ListUsers =
     });
 
     // TODO: support AttributesToGet
-    // TODO: support Limit
     // TODO: support PaginationToken
 
     const limit = req.Limit || filteredUsers.length;
