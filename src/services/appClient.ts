@@ -92,6 +92,10 @@ export interface AppClient {
    * Indicates whether token revocation is enabled for the user pool client. When you create a new user pool client, token revocation is enabled by default. For more information about revoking tokens, see RevokeToken.
    */
   EnableTokenRevocation?: boolean;
+  /**
+   * Scopes for users for app client
+   */
+  Scopes?: string;
 }
 
 const generator = shortUUID("0123456789abcdefghijklmnopqrstuvwxyz");

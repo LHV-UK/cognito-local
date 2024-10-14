@@ -84,6 +84,13 @@ const applyTokenOverrides = (
   );
 };
 
+const BASE_SCOPE = "aws.cognito.signin.user.admin";
+const getScopeForClient = (client: AppClient): string => {
+  if (client.Scopes)
+    return `${BASE_SCOPE} ${client.Scopes}`;
+  return BASE_SCOPE;
+};
+
 export interface Tokens {
   readonly AccessToken: string;
   readonly IdToken: string;
@@ -150,7 +157,11 @@ export class JwtTokenGenerator implements TokenGenerator {
       event_id: eventId,
       iat: authTime,
       jti: uuid.v4(),
-      scope: "aws.cognito.signin.user.admin", // TODO: scopes
+      scope: getScopeForClient(userPoolClient),
+      "custom:tuum_person_id": attributeValue(
+        "custom:tuum_person_id",
+        user.Attributes
+      ),
       sub,
       token_use: "access",
       username: user.Username,
