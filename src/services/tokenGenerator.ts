@@ -85,12 +85,9 @@ const applyTokenOverrides = (
 };
 
 const BASE_SCOPE = "aws.cognito.signin.user.admin";
-const BANKING_SERVICES_USER_SCOPES =
-  "capability-platform/person capability-platform/savings capability-platform/document connect/read capability-platform/payments authentication-service/saltedge verification-service/idv authentication-service/user capability-platform/statements capability-platform/idv capability-platform/account-information authentication-service/user-write connect/write capability-platform/account-management authentication-service/verify";
-
 const getScopeForClient = (client: AppClient): string => {
-  if (client.ClientName === "banking-services-app-client")
-    return `${BASE_SCOPE} ${BANKING_SERVICES_USER_SCOPES}`;
+  if (client.Scopes)
+    return `${BASE_SCOPE} ${client.Scopes}`;
   return BASE_SCOPE;
 };
 
